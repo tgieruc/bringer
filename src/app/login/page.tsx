@@ -17,10 +17,13 @@ export default function LoginPage() {
     event.preventDefault()
     setLoading(true)
     try {
+      // Use environment variable for site URL, fallback to localhost for development
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `http://localhost:3000/auth/callback`,
+          emailRedirectTo: `${siteUrl}/auth/callback`,
         },
       })
       if (error) {
