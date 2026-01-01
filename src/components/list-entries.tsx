@@ -175,7 +175,7 @@ export function ListEntries({ listId, workspaceId, initialEntries }: ListEntries
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join('')
 
-    const Icon = (LucideIcons as any)[iconName]
+    const Icon = LucideIcons[iconName as keyof typeof LucideIcons]
     return Icon ? <Icon className="h-5 w-5" /> : null
   }
 

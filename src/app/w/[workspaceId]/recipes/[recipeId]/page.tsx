@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ExternalLink } from 'lucide-react'
 import { RecipeForm } from '@/components/recipe-form'
@@ -121,11 +122,13 @@ export default async function RecipeDetailPage({
 
       {/* Recipe image */}
       {recipe.image_url && (
-        <div className="mb-6 rounded-lg overflow-hidden">
-          <img
+        <div className="mb-6 rounded-lg overflow-hidden relative aspect-video">
+          <Image
             src={recipe.image_url}
             alt={recipe.title}
-            className="w-full h-auto"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1000px"
           />
         </div>
       )}
