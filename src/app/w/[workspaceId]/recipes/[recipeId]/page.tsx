@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ExternalLink } from 'lucide-react'
 import { RecipeForm } from '@/components/recipe-form'
+import { RecipeActionsMenu } from '@/components/recipe-actions-menu'
 
 export default async function RecipeDetailPage({
   params,
@@ -27,6 +28,8 @@ export default async function RecipeDetailPage({
   if (!membership) {
     redirect('/')
   }
+
+  const isOwner = membership.role === 'owner'
 
   // Fetch the recipe
   const { data: recipe, error: recipeError } = await supabase
@@ -94,9 +97,17 @@ export default async function RecipeDetailPage({
         </Link>
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">{recipe.title}</h1>
-          <Link href={`/w/${workspaceId}/recipes/${recipeId}?edit=true`}>
-            <Button>Edit Recipe</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={`/w/${workspaceId}/recipes/${recipeId}?edit=true`}>
+              <Button>Edit Recipe</Button>
+            </Link>
+            <RecipeActionsMenu
+              recipeId={recipeId}
+              recipeTitle={recipe.title}
+              workspaceId={workspaceId}
+              isOwner={isOwner}
+            />
+          </div>
         </div>
       </div>
 

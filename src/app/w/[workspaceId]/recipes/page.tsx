@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { RecipeActionsMenu } from '@/components/recipe-actions-menu'
 
 export default async function RecipesPage({
   params,
@@ -22,6 +23,8 @@ export default async function RecipesPage({
   if (!membership) {
     redirect('/')
   }
+
+  const isOwner = membership.role === 'owner'
 
   // Fetch all recipes for this workspace
   const { data: recipes, error } = await supabase
@@ -47,33 +50,43 @@ export default async function RecipesPage({
       {recipes && recipes.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {recipes.map((recipe) => (
-            <Link key={recipe.id} href={`/w/${workspaceId}/recipes/${recipe.id}`}>
-              <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
-                {recipe.image_url && (
-                  <div className="aspect-video w-full overflow-hidden rounded-t-lg">
-                    <img
-                      src={recipe.image_url}
-                      alt={recipe.title}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                )}
-                <CardHeader>
-                  <CardTitle>{recipe.title}</CardTitle>
-                  <CardDescription>
-                    {recipe.instructions.slice(0, 100)}
-                    {recipe.instructions.length > 100 ? '...' : ''}
-                  </CardDescription>
-                </CardHeader>
-                {recipe.external_link && (
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      External recipe available
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            </Link>
+            <div key={recipe.id} className="relative group">
+              <Link href={`/w/${workspaceId}/recipes/${recipe.id}`}>
+                <Card className="hover:bg-accent transition-colors cursor-pointer h-full">
+                  {recipe.image_url && (
+                    <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+                      <img
+                        src={recipe.image_url}
+                        alt={recipe.title}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  )}
+                  <CardHeader className="pr-12">
+                    <CardTitle>{recipe.title}</CardTitle>
+                    <CardDescription>
+                      {recipe.instructions.slice(0, 100)}
+                      {recipe.instructions.length > 100 ? '...' : ''}
+                    </CardDescription>
+                  </CardHeader>
+                  {recipe.external_link && (
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        External recipe available
+                      </p>
+                    </CardContent>
+                  )}
+                </Card>
+              </Link>
+              <div className="absolute top-3 right-3">
+                <RecipeActionsMenu
+                  recipeId={recipe.id}
+                  recipeTitle={recipe.title}
+                  workspaceId={workspaceId}
+                  isOwner={isOwner}
+                />
+              </div>
+            </div>
           ))}
         </div>
       ) : (

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
 import { ListEntries } from '@/components/list-entries'
+import { ListActionsMenu } from '@/components/list-actions-menu'
 
 export default async function ListDetailPage({
   params,
@@ -23,6 +24,8 @@ export default async function ListDetailPage({
   if (!membership) {
     redirect('/')
   }
+
+  const isOwner = membership.role === 'owner'
 
   // Fetch the shopping list
   const { data: list, error: listError } = await supabase
@@ -67,7 +70,15 @@ export default async function ListDetailPage({
             Back to Lists
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold">{list.name}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">{list.name}</h1>
+          <ListActionsMenu
+            listId={listId}
+            listName={list.name}
+            workspaceId={workspaceId}
+            isOwner={isOwner}
+          />
+        </div>
       </div>
 
       {/* List entries component */}

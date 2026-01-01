@@ -2,8 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { CreateListForm } from '@/components/create-list-form'
+import { ListActionsMenu } from '@/components/list-actions-menu'
 
 export default async function ListsPage({
   params,
@@ -23,6 +23,8 @@ export default async function ListsPage({
   if (!membership) {
     redirect('/')
   }
+
+  const isOwner = membership.role === 'owner'
 
   // Fetch all shopping lists for this workspace
   const { data: lists, error } = await supabase
@@ -50,16 +52,26 @@ export default async function ListsPage({
       {lists && lists.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {lists.map((list) => (
-            <Link key={list.id} href={`/w/${workspaceId}/lists/${list.id}`}>
-              <Card className="hover:bg-accent transition-colors cursor-pointer">
-                <CardHeader>
-                  <CardTitle>{list.name}</CardTitle>
-                  <CardDescription>
-                    Updated {new Date(list.updated_at).toLocaleDateString()}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
+            <div key={list.id} className="relative group">
+              <Link href={`/w/${workspaceId}/lists/${list.id}`}>
+                <Card className="hover:bg-accent transition-colors cursor-pointer">
+                  <CardHeader className="pr-12">
+                    <CardTitle>{list.name}</CardTitle>
+                    <CardDescription>
+                      Updated {new Date(list.updated_at).toLocaleDateString()}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
+              <div className="absolute top-3 right-3">
+                <ListActionsMenu
+                  listId={list.id}
+                  listName={list.name}
+                  workspaceId={workspaceId}
+                  isOwner={isOwner}
+                />
+              </div>
+            </div>
           ))}
         </div>
       ) : (
