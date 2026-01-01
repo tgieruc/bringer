@@ -3,13 +3,21 @@ import OpenAI from 'openai'
 import { Mistral } from '@mistralai/mistralai'
 import { createClient } from '@/lib/supabase/server'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set')
+  }
+  return new OpenAI({ apiKey })
+}
 
-const mistral = new Mistral({
-  apiKey: process.env.MISTRAL_API_KEY,
-})
+function getMistralClient() {
+  const apiKey = process.env.MISTRAL_API_KEY
+  if (!apiKey) {
+    throw new Error('MISTRAL_API_KEY environment variable is not set')
+  }
+  return new Mistral({ apiKey })
+}
 
 interface ParsedRecipe {
   title: string
@@ -65,6 +73,7 @@ export async function POST(request: NextRequest) {
     // If image, use Mistral OCR to extract text
     if (type === 'image') {
       try {
+        const mistral = getMistralClient()
         // Input should be base64 data URL (e.g., "data:image/jpeg;base64,...")
         const chatResponse = await mistral.chat.complete({
           model: 'pixtral-12b-2409',
@@ -135,6 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use OpenAI to parse recipe with structured output
+    const openai = getOpenAIClient()
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-2024-08-06',
       messages: [

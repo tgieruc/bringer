@@ -1,11 +1,11 @@
 -- Additional performance indexes for better query optimization
 -- Generated: 2026-01-01
 
--- Index for faster item lookups by workspace_id and normalized_name
+-- Index for faster item lookups by workspace_id and name_normalized
 -- This composite index is more efficient than separate indexes
 -- when querying items by both workspace and name
 CREATE INDEX IF NOT EXISTS items_workspace_id_name_idx 
-  ON items(workspace_id, normalized_name);
+  ON items(workspace_id, name_normalized);
 
 -- Index for faster queries filtering unchecked entries
 -- Partial index only includes unchecked items (most common query)
@@ -35,7 +35,7 @@ END $$;
 
 -- Comments for documentation
 COMMENT ON INDEX items_workspace_id_name_idx IS 
-  'Composite index for fast item lookups by workspace and normalized name';
+  'Composite index for fast item lookups by workspace and name_normalized';
 COMMENT ON INDEX shopping_list_entries_checked_idx IS 
   'Partial index for unchecked entries - improves active list queries';
 COMMENT ON INDEX recipes_workspace_id_title_idx IS 
