@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { Mistral } from '@mistralai/mistralai'
 import { createClient } from '@/lib/supabase/server'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+})
+
+const mistral = new Mistral({
+  apiKey: process.env.MISTRAL_API_KEY,
 })
 
 interface ParsedRecipe {
@@ -34,6 +39,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!['url', 'text', 'image'].includes(type)) {
+      return NextResponse.json(
+        { error: 'Invalid type. Must be url, text, or image' },
+        { status: 400 }
+      )
+    }
+
     // Verify user has access to workspace
     const { data: membership } = await supabase
       .from('workspace_members')
@@ -49,6 +61,45 @@ export async function POST(request: NextRequest) {
     }
 
     let textContent = input
+
+    // If image, use Mistral OCR to extract text
+    if (type === 'image') {
+      try {
+        // Input should be base64 data URL (e.g., "data:image/jpeg;base64,...")
+        const chatResponse = await mistral.chat.complete({
+          model: 'pixtral-12b-2409',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Extract all text from this recipe image. Include the recipe title, all ingredients with quantities, and all cooking instructions. Be thorough and accurate.',
+                },
+                {
+                  type: 'image_url',
+                  imageUrl: input,
+                },
+              ],
+            },
+          ],
+        })
+
+        textContent = chatResponse.choices?.[0]?.message?.content || ''
+        if (!textContent) {
+          return NextResponse.json(
+            { error: 'Failed to extract text from image' },
+            { status: 400 }
+          )
+        }
+      } catch (error) {
+        console.error('Error processing image with Mistral:', error)
+        return NextResponse.json(
+          { error: 'Failed to process image' },
+          { status: 400 }
+        )
+      }
+    }
 
     // If URL, fetch the page content
     if (type === 'url') {

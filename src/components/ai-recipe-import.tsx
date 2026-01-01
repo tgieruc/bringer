@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Image as ImageIcon } from 'lucide-react'
 
 interface ParsedRecipe {
   title: string
@@ -26,13 +26,37 @@ interface AIRecipeImportProps {
 }
 
 export function AIRecipeImport({ workspaceId, onRecipeParsed }: AIRecipeImportProps) {
-  const [inputType, setInputType] = useState<'url' | 'text'>('url')
+  const [inputType, setInputType] = useState<'url' | 'text' | 'image'>('url')
   const [input, setInput] = useState('')
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    // Convert to base64
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64String = reader.result as string
+      setInput(base64String)
+      setImagePreview(base64String)
+    }
+    reader.onerror = () => {
+      toast.error('Failed to read image file')
+    }
+    reader.readAsDataURL(file)
+  }
 
   const handleImport = async () => {
     if (!input.trim()) {
-      toast.error('Please enter a URL or text')
+      toast.error(inputType === 'image' ? 'Please select an image' : 'Please enter a URL or text')
       return
     }
 
@@ -60,6 +84,10 @@ export function AIRecipeImport({ workspaceId, onRecipeParsed }: AIRecipeImportPr
       toast.success('Recipe imported successfully!')
       onRecipeParsed(data.recipe)
       setInput('')
+      setImagePreview(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     } catch (error) {
       console.error('Error importing recipe:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to import recipe')
@@ -76,11 +104,18 @@ export function AIRecipeImport({ workspaceId, onRecipeParsed }: AIRecipeImportPr
           AI Recipe Import
         </CardTitle>
         <CardDescription>
-          Import a recipe from a URL or paste recipe text. AI will automatically extract the title, ingredients, and instructions.
+          Import a recipe from a URL, text, or photo. AI will automatically extract the title, ingredients, and instructions.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <RadioGroup value={inputType} onValueChange={(value) => setInputType(value as 'url' | 'text')}>
+        <RadioGroup value={inputType} onValueChange={(value) => {
+          setInputType(value as 'url' | 'text' | 'image')
+          setInput('')
+          setImagePreview(null)
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+          }
+        }}>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="url" id="url" />
             <Label htmlFor="url">From URL</Label>
@@ -89,11 +124,15 @@ export function AIRecipeImport({ workspaceId, onRecipeParsed }: AIRecipeImportPr
             <RadioGroupItem value="text" id="text" />
             <Label htmlFor="text">From Text</Label>
           </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="image" id="image" />
+            <Label htmlFor="image">From Photo</Label>
+          </div>
         </RadioGroup>
 
         <div>
           <Label htmlFor="input">
-            {inputType === 'url' ? 'Recipe URL' : 'Recipe Text'}
+            {inputType === 'url' ? 'Recipe URL' : inputType === 'text' ? 'Recipe Text' : 'Recipe Photo'}
           </Label>
           {inputType === 'url' ? (
             <Input
@@ -104,7 +143,7 @@ export function AIRecipeImport({ workspaceId, onRecipeParsed }: AIRecipeImportPr
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}
             />
-          ) : (
+          ) : inputType === 'text' ? (
             <textarea
               id="input"
               placeholder="Paste recipe text here (title, ingredients, instructions)..."
@@ -113,14 +152,45 @@ export function AIRecipeImport({ workspaceId, onRecipeParsed }: AIRecipeImportPr
               disabled={isLoading}
               className="w-full min-h-[150px] px-3 py-2 rounded-md border border-input bg-background"
             />
+          ) : (
+            <div className="space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                disabled={isLoading}
+                className="hidden"
+                id="image-input"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                className="w-full"
+              >
+                <ImageIcon className="mr-2 h-4 w-4" />
+                {imagePreview ? 'Change Photo' : 'Select Photo'}
+              </Button>
+              {imagePreview && (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Recipe preview"
+                    className="w-full h-auto max-h-[300px] object-contain rounded-md border"
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        <Button onClick={handleImport} disabled={isLoading} className="w-full">
+        <Button onClick={handleImport} disabled={isLoading || !input} className="w-full">
           {isLoading ? (
             <>
               <Sparkles className="mr-2 h-4 w-4 animate-pulse" />
-              Importing Recipe...
+              {inputType === 'image' ? 'Reading Photo...' : 'Importing Recipe...'}
             </>
           ) : (
             <>
