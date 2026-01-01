@@ -9,30 +9,9 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Trash2 } from 'lucide-react'
-import * as LucideIcons from 'lucide-react'
+import { ItemIcon } from '@/components/item-icon'
 import { AIRecipeImport } from '@/components/ai-recipe-import'
-
-interface Item {
-  id: string
-  name: string
-  icon_key: string | null
-}
-
-interface Ingredient {
-  id?: string
-  note: string
-  position: number
-  item: Item
-}
-
-interface Recipe {
-  id: string
-  title: string
-  instructions: string
-  image_url: string | null
-  external_link: string | null
-  ingredients: Ingredient[]
-}
+import type { Ingredient, Recipe } from '@/types'
 
 interface RecipeFormProps {
   workspaceId: string
@@ -71,9 +50,10 @@ export function RecipeForm({ workspaceId, mode, recipe, showAIImport = true }: R
           p_workspace_id: workspaceId,
           p_name: newIngredientName.trim(),
         })
-        .single()
+        .single<{ item_id: string; item_name: string; item_normalized_name: string; item_icon_key: string | null }>()
 
       if (itemError) throw itemError
+      if (!itemData) throw new Error('Failed to create item')
 
       // Check if ingredient already exists in the list
       if (ingredients.some(ing => ing.item.id === itemData.item_id)) {
@@ -128,12 +108,14 @@ export function RecipeForm({ workspaceId, mode, recipe, showAIImport = true }: R
             p_workspace_id: workspaceId,
             p_name: ing.name.trim(),
           })
-          .single()
+          .single<{ item_id: string; item_name: string; item_normalized_name: string; item_icon_key: string | null }>()
 
         if (itemError) {
           console.error('Error creating item:', itemError)
           continue
         }
+
+        if (!itemData) continue
 
         processedIngredients.push({
           note: ing.note,
@@ -246,18 +228,6 @@ export function RecipeForm({ workspaceId, mode, recipe, showAIImport = true }: R
     }
   }
 
-  const getIcon = (iconKey: string | null) => {
-    if (!iconKey) return null
-
-    const iconName = iconKey
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join('')
-
-    const Icon = LucideIcons[iconName as keyof typeof LucideIcons]
-    return Icon ? <Icon className="h-5 w-5" /> : null
-  }
-
   return (
     <div className="space-y-6">
       {/* AI Recipe Import */}
@@ -352,11 +322,9 @@ export function RecipeForm({ workspaceId, mode, recipe, showAIImport = true }: R
               <Card key={index}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    {getIcon(ingredient.item.icon_key) && (
-                      <div className="text-muted-foreground">
-                        {getIcon(ingredient.item.icon_key)}
-                      </div>
-                    )}
+                    <div className="text-muted-foreground">
+                      <ItemIcon iconKey={ingredient.item.icon_key} name={ingredient.item.name} />
+                    </div>
                     <div className="flex-1">
                       <div className="font-medium">{ingredient.item.name}</div>
                       <Input
@@ -372,6 +340,7 @@ export function RecipeForm({ workspaceId, mode, recipe, showAIImport = true }: R
                       size="sm"
                       onClick={() => handleRemoveIngredient(index)}
                       className="text-destructive hover:text-destructive"
+                      aria-label={`Remove ${ingredient.item.name} from recipe`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

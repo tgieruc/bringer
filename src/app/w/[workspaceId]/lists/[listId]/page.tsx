@@ -47,7 +47,7 @@ export default async function ListDetailPage({
       note,
       checked,
       position,
-      item:items (
+      items (
         id,
         name,
         icon_key
@@ -59,6 +59,15 @@ export default async function ListDetailPage({
   if (entriesError) {
     console.error('Error fetching entries:', entriesError)
   }
+
+  // Transform the data to match our Entry type
+  const transformedEntries = entries?.map(entry => ({
+    id: entry.id,
+    note: entry.note,
+    checked: entry.checked,
+    position: entry.position,
+    item: Array.isArray(entry.items) ? entry.items[0] : entry.items
+  })) || []
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-3xl">
@@ -85,7 +94,7 @@ export default async function ListDetailPage({
       <ListEntries
         listId={listId}
         workspaceId={workspaceId}
-        initialEntries={entries || []}
+        initialEntries={transformedEntries}
       />
     </div>
   )

@@ -44,10 +44,15 @@ export function CreateWorkspaceForm() {
         .rpc('create_workspace_with_member', {
           p_name: name.trim(),
         })
-        .single()
+        .single<{ id: string; name: string }>()
 
       if (error) {
         console.error('Error creating workspace:', error)
+        toast.error('Failed to create workspace')
+        return
+      }
+
+      if (!workspace) {
         toast.error('Failed to create workspace')
         return
       }

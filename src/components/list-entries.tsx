@@ -8,21 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Trash2 } from 'lucide-react'
-import * as LucideIcons from 'lucide-react'
-
-interface Item {
-  id: string
-  name: string
-  icon_key: string | null
-}
-
-interface Entry {
-  id: string
-  note: string
-  checked: boolean
-  position: number
-  item: Item
-}
+import { ItemIcon } from '@/components/item-icon'
+import type { Entry } from '@/types'
 
 interface ListEntriesProps {
   listId: string
@@ -55,16 +42,17 @@ export function ListEntries({ listId, workspaceId, initialEntries }: ListEntries
           p_workspace_id: workspaceId,
           p_name: newItemName.trim(),
         })
-        .single()
+        .single<{ item_id: string; item_name: string; item_normalized_name: string; item_icon_key: string | null }>()
 
       if (itemError) throw itemError
+      if (!itemData) throw new Error('Failed to create item')
 
       // Add entry to the list
       const maxPosition = entries.length > 0
         ? Math.max(...entries.map(e => e.position))
         : 0
 
-      const { data: newEntry, error: entryError } = await supabase
+      const { data: newEntry, error: entryError} = await supabase
         .from('shopping_list_entries')
         .insert({
           list_id: listId,
@@ -78,7 +66,7 @@ export function ListEntries({ listId, workspaceId, initialEntries }: ListEntries
           note,
           checked,
           position,
-          item:items (
+          items (
             id,
             name,
             icon_key
@@ -95,8 +83,19 @@ export function ListEntries({ listId, workspaceId, initialEntries }: ListEntries
         throw entryError
       }
 
+      if (!newEntry) throw new Error('Failed to create entry')
+
+      // Transform the entry to match Entry type
+      const transformedEntry: Entry = {
+        id: newEntry.id,
+        note: newEntry.note,
+        checked: newEntry.checked,
+        position: newEntry.position,
+        item: Array.isArray(newEntry.items) ? newEntry.items[0] : newEntry.items
+      }
+
       // Add to local state
-      setEntries([...entries, newEntry as Entry])
+      setEntries([...entries, transformedEntry])
       setNewItemName('')
       setNewItemNote('')
       toast.success('Item added to list!')
@@ -166,19 +165,6 @@ export function ListEntries({ listId, workspaceId, initialEntries }: ListEntries
     }
   }
 
-  const getIcon = (iconKey: string | null) => {
-    if (!iconKey) return null
-
-    // Convert icon_key to PascalCase for Lucide
-    const iconName = iconKey
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join('')
-
-    const Icon = LucideIcons[iconName as keyof typeof LucideIcons]
-    return Icon ? <Icon className="h-5 w-5" /> : null
-  }
-
   const uncheckedEntries = entries.filter(e => !e.checked)
   const checkedEntries = entries.filter(e => e.checked)
 
@@ -224,7 +210,6 @@ export function ListEntries({ listId, workspaceId, initialEntries }: ListEntries
               onToggle={handleToggleChecked}
               onUpdateNote={handleUpdateNote}
               onDelete={handleDeleteEntry}
-              getIcon={getIcon}
             />
           ))}
         </div>
@@ -241,7 +226,6 @@ export function ListEntries({ listId, workspaceId, initialEntries }: ListEntries
               onToggle={handleToggleChecked}
               onUpdateNote={handleUpdateNote}
               onDelete={handleDeleteEntry}
-              getIcon={getIcon}
             />
           ))}
         </div>
@@ -262,13 +246,11 @@ function EntryItem({
   onToggle,
   onUpdateNote,
   onDelete,
-  getIcon,
 }: {
   entry: Entry
   onToggle: (id: string, checked: boolean) => void
   onUpdateNote: (id: string, note: string) => void
   onDelete: (id: string) => void
-  getIcon: (iconKey: string | null) => React.ReactNode
 }) {
   const [isEditingNote, setIsEditingNote] = useState(false)
   const [noteValue, setNoteValue] = useState(entry.note)
@@ -290,14 +272,13 @@ function EntryItem({
             checked={entry.checked}
             onChange={() => onToggle(entry.id, entry.checked)}
             className="h-5 w-5 rounded border-gray-300"
+            aria-label={`Mark ${entry.item.name} as ${entry.checked ? 'unchecked' : 'checked'}`}
           />
 
           {/* Icon */}
-          {getIcon(entry.item.icon_key) && (
-            <div className="text-muted-foreground">
-              {getIcon(entry.item.icon_key)}
-            </div>
-          )}
+          <div className="text-muted-foreground">
+            <ItemIcon iconKey={entry.item.icon_key} name={entry.item.name} />
+          </div>
 
           {/* Item name */}
           <div className="flex-1">
@@ -321,6 +302,7 @@ function EntryItem({
                 }}
                 className="mt-1 h-7 text-sm"
                 autoFocus
+                aria-label={`Edit note for ${entry.item.name}`}
               />
             ) : (
               <div
@@ -338,6 +320,7 @@ function EntryItem({
             size="sm"
             onClick={() => onDelete(entry.id)}
             className="text-destructive hover:text-destructive"
+            aria-label={`Delete ${entry.item.name} from list`}
           >
             <Trash2 className="h-4 w-4" />
           </Button>

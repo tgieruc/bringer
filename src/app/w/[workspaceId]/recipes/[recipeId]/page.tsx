@@ -52,7 +52,7 @@ export default async function RecipeDetailPage({
       id,
       note,
       position,
-      item:items (
+      items (
         id,
         name,
         icon_key
@@ -64,6 +64,14 @@ export default async function RecipeDetailPage({
   if (ingredientsError) {
     console.error('Error fetching ingredients:', ingredientsError)
   }
+
+  // Transform the data to match our Ingredient type
+  const transformedIngredients = ingredients?.map(ingredient => ({
+    id: ingredient.id,
+    note: ingredient.note,
+    position: ingredient.position,
+    item: Array.isArray(ingredient.items) ? ingredient.items[0] : ingredient.items
+  })) || []
 
   if (isEditMode) {
     return (
@@ -80,7 +88,7 @@ export default async function RecipeDetailPage({
           mode="edit"
           recipe={{
             ...recipe,
-            ingredients: ingredients || [],
+            ingredients: transformedIngredients,
           }}
         />
       </div>
@@ -100,11 +108,11 @@ export default async function RecipeDetailPage({
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">{recipe.title}</h1>
           <div className="flex items-center gap-2">
-            {ingredients && ingredients.length > 0 && (
+            {transformedIngredients && transformedIngredients.length > 0 && (
               <AddRecipeToList
                 workspaceId={workspaceId}
                 recipeTitle={recipe.title}
-                ingredients={ingredients}
+                ingredients={transformedIngredients}
               />
             )}
             <Link href={`/w/${workspaceId}/recipes/${recipeId}?edit=true`}>
@@ -152,9 +160,9 @@ export default async function RecipeDetailPage({
         {/* Ingredients */}
         <div className="md:col-span-1">
           <h2 className="text-xl font-semibold mb-4">Ingredients</h2>
-          {ingredients && ingredients.length > 0 ? (
+          {transformedIngredients && transformedIngredients.length > 0 ? (
             <ul className="space-y-2">
-              {ingredients.map((ingredient) => (
+              {transformedIngredients.map((ingredient) => (
                 <li key={ingredient.id} className="flex items-start gap-2">
                   <span className="text-muted-foreground">•</span>
                   <div>

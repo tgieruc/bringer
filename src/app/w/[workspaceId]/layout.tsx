@@ -19,6 +19,13 @@ export default async function WorkspaceLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Skip to main content link for accessibility */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+      >
+        Skip to main content
+      </a>
       <header className="sticky top-0 z-40 w-full border-b bg-background">
         <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
@@ -43,7 +50,7 @@ export default async function WorkspaceLayout({
             </nav>
           </aside>
           <Separator orientation="vertical" className="hidden md:block h-auto" />
-          <main className="flex-1 py-6 md:pl-4">{children}</main>
+          <main id="main-content" className="flex-1 py-6 md:pl-4">{children}</main>
         </div>
       </div>
     </div>

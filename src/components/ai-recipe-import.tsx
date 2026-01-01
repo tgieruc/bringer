@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -174,11 +175,13 @@ export function AIRecipeImport({ workspaceId, onRecipeParsed }: AIRecipeImportPr
                 {imagePreview ? 'Change Photo' : 'Select Photo'}
               </Button>
               {imagePreview && (
-                <div className="relative">
-                  <img
+                <div className="relative w-full h-[300px]">
+                  <Image
                     src={imagePreview}
                     alt="Recipe preview"
-                    className="w-full h-auto max-h-[300px] object-contain rounded-md border"
+                    fill
+                    className="object-contain rounded-md border"
+                    sizes="(max-width: 768px) 100vw, 600px"
                   />
                 </div>
               )}
