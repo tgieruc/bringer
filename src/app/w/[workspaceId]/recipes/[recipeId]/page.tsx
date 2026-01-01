@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ChevronLeft, ExternalLink } from 'lucide-react'
 import { RecipeForm } from '@/components/recipe-form'
 import { RecipeActionsMenu } from '@/components/recipe-actions-menu'
+import { AddRecipeToList } from '@/components/add-recipe-to-list'
 
 export default async function RecipeDetailPage({
   params,
@@ -98,6 +99,13 @@ export default async function RecipeDetailPage({
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">{recipe.title}</h1>
           <div className="flex items-center gap-2">
+            {ingredients && ingredients.length > 0 && (
+              <AddRecipeToList
+                workspaceId={workspaceId}
+                recipeTitle={recipe.title}
+                ingredients={ingredients}
+              />
+            )}
             <Link href={`/w/${workspaceId}/recipes/${recipeId}?edit=true`}>
               <Button>Edit Recipe</Button>
             </Link>
