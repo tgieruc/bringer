@@ -7,15 +7,3 @@
 
 [build.environment]
   NODE_VERSION = "20"
-
-# Redirect all requests to Next.js
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/___netlify-handler"
-  status = 200
-
-# Redirect from /w to /.netlify/functions/___netlify-handler
-[[redirects]]
-  from = "/w/*"
-  to = "/.netlify/functions/___netlify-handler"
-  status = 200
