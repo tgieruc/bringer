@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
+import { createClient } from '@/lib/supabase/server'
+import { UserMenu } from '@/components/user-menu'
+import { MobileNav } from '@/components/mobile-nav'
 
 export default async function WorkspaceLayout({
   children,
@@ -9,17 +12,22 @@ export default async function WorkspaceLayout({
   params: Promise<{ workspaceId: string }>
 }) {
   const { workspaceId } = await params
+  const supabase = await createClient()
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
 
   return (
     <div className="flex flex-col min-h-screen">
       <header className="sticky top-0 z-40 w-full border-b bg-background">
-        <div className="container flex items-center h-16 space-x-4 sm:justify-between sm:space-x-0">
-          <div className="flex gap-6 md:gap-10">
+        <div className="container flex items-center justify-between h-16">
+          <div className="flex items-center gap-2">
+            <MobileNav workspaceId={workspaceId} />
             <Link href="/" className="flex items-center space-x-2">
               <span className="inline-block font-bold">Bringer</span>
             </Link>
           </div>
-          {/* TODO: Add user dropdown menu here */}
+          {user?.email && <UserMenu userEmail={user.email} />}
         </div>
       </header>
       <div className="container flex-1">
@@ -34,8 +42,8 @@ export default async function WorkspaceLayout({
               </Link>
             </nav>
           </aside>
-          <Separator orientation="vertical" className="h-auto" />
-          <main className="flex-1 py-6 pl-4">{children}</main>
+          <Separator orientation="vertical" className="hidden md:block h-auto" />
+          <main className="flex-1 py-6 md:pl-4">{children}</main>
         </div>
       </div>
     </div>

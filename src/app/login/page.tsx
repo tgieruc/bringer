@@ -20,7 +20,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${location.origin}/auth/callback`,
+          emailRedirectTo: `http://localhost:3000/auth/callback`,
         },
       })
       if (error) {

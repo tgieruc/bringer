@@ -38,36 +38,16 @@ create policy "Users can create workspaces"
 
 create policy "Owners can update their workspaces"
   on public.workspaces for update
-  using (
-    exists (
-      select 1 from public.workspace_members
-      where workspace_members.workspace_id = workspaces.id
-      and workspace_members.user_id = auth.uid()
-      and workspace_members.role = 'owner'
-    )
-  );
+  using (owner_id = auth.uid());
 
 create policy "Owners can delete their workspaces"
   on public.workspaces for delete
-  using (
-    exists (
-      select 1 from public.workspace_members
-      where workspace_members.workspace_id = workspaces.id
-      and workspace_members.user_id = auth.uid()
-      and workspace_members.role = 'owner'
-    )
-  );
+  using (owner_id = auth.uid());
 
 -- Workspace members policies
-create policy "Users can view members of workspaces they belong to"
+create policy "Users can view their own workspace memberships"
   on public.workspace_members for select
-  using (
-    exists (
-      select 1 from public.workspace_members as wm
-      where wm.workspace_id = workspace_members.workspace_id
-      and wm.user_id = auth.uid()
-    )
-  );
+  using (user_id = auth.uid());
 
 create policy "System can create workspace members"
   on public.workspace_members for insert
@@ -77,10 +57,9 @@ create policy "Owners can update workspace members"
   on public.workspace_members for update
   using (
     exists (
-      select 1 from public.workspace_members as wm
-      where wm.workspace_id = workspace_members.workspace_id
-      and wm.user_id = auth.uid()
-      and wm.role = 'owner'
+      select 1 from public.workspaces w
+      where w.id = workspace_members.workspace_id
+      and w.owner_id = auth.uid()
     )
   );
 
@@ -88,22 +67,28 @@ create policy "Owners can remove workspace members"
   on public.workspace_members for delete
   using (
     exists (
-      select 1 from public.workspace_members as wm
-      where wm.workspace_id = workspace_members.workspace_id
-      and wm.user_id = auth.uid()
-      and wm.role = 'owner'
+      select 1 from public.workspaces w
+      where w.id = workspace_members.workspace_id
+      and w.owner_id = auth.uid()
     )
   );
 
--- Function to automatically add creator as owner
+-- Function to automatically add creator as owner (bypasses RLS)
 create or replace function public.handle_new_workspace()
-returns trigger as $$
+returns trigger
+security definer
+set search_path = public
+language plpgsql
+as $$
 begin
   insert into public.workspace_members (workspace_id, user_id, role)
   values (new.id, new.owner_id, 'owner');
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
+
+-- Grant necessary permissions to the function
+grant execute on function public.handle_new_workspace() to authenticated;
 
 -- Trigger to auto-add owner as member
 create trigger on_workspace_created

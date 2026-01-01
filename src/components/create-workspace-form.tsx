@@ -39,14 +39,11 @@ export function CreateWorkspaceForm() {
         return
       }
 
-      // Create workspace
+      // Create workspace using RPC function
       const { data: workspace, error } = await supabase
-        .from('workspaces')
-        .insert({
-          name: name.trim(),
-          owner_id: user.id,
+        .rpc('create_workspace_with_member', {
+          p_name: name.trim(),
         })
-        .select()
         .single()
 
       if (error) {
