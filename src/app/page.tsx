@@ -23,9 +23,10 @@ export default async function RootPage() {
 
   // If user has workspaces, redirect to first one
   if (workspaces && workspaces.length > 0) {
-    const firstWorkspace = workspaces[0].workspaces as { id: string } | null
-    if (firstWorkspace) {
-      redirect(`/w/${firstWorkspace.id}/lists`)
+    const firstMembership = workspaces[0]
+    const workspace = firstMembership.workspaces as { id: string } | { id: string }[] | null
+    if (workspace && !Array.isArray(workspace) && workspace.id) {
+      redirect(`/w/${workspace.id}/lists`)
     }
   }
 

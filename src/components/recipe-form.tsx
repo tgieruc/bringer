@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Trash2 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
+import { AIRecipeImport } from '@/components/ai-recipe-import'
 
 interface Item {
   id: string
@@ -37,9 +38,10 @@ interface RecipeFormProps {
   workspaceId: string
   mode: 'create' | 'edit'
   recipe?: Recipe
+  showAIImport?: boolean
 }
 
-export function RecipeForm({ workspaceId, mode, recipe }: RecipeFormProps) {
+export function RecipeForm({ workspaceId, mode, recipe, showAIImport = true }: RecipeFormProps) {
   const [title, setTitle] = useState(recipe?.title || '')
   const [instructions, setInstructions] = useState(recipe?.instructions || '')
   const [imageUrl, setImageUrl] = useState(recipe?.image_url || '')
@@ -101,6 +103,53 @@ export function RecipeForm({ workspaceId, mode, recipe }: RecipeFormProps) {
     } finally {
       setIsAdding(false)
     }
+  }
+
+  const handleAIRecipeParsed = async (parsedRecipe: {
+    title: string
+    instructions: string
+    ingredients: Array<{ name: string; note: string }>
+    image_url: string | null
+    external_link: string | null
+  }) => {
+    // Set basic fields
+    setTitle(parsedRecipe.title)
+    setInstructions(parsedRecipe.instructions)
+    setImageUrl(parsedRecipe.image_url || '')
+    setExternalLink(parsedRecipe.external_link || '')
+
+    // Process ingredients - need to get or create items for each
+    const processedIngredients: Ingredient[] = []
+    
+    for (const [index, ing] of parsedRecipe.ingredients.entries()) {
+      try {
+        const { data: itemData, error: itemError } = await supabase
+          .rpc('get_or_create_item', {
+            p_workspace_id: workspaceId,
+            p_name: ing.name.trim(),
+          })
+          .single()
+
+        if (itemError) {
+          console.error('Error creating item:', itemError)
+          continue
+        }
+
+        processedIngredients.push({
+          note: ing.note,
+          position: index,
+          item: {
+            id: itemData.item_id,
+            name: itemData.item_name,
+            icon_key: itemData.item_icon_key,
+          },
+        })
+      } catch (error) {
+        console.error('Error processing ingredient:', error)
+      }
+    }
+
+    setIngredients(processedIngredients)
   }
 
   const handleRemoveIngredient = (index: number) => {
@@ -211,6 +260,11 @@ export function RecipeForm({ workspaceId, mode, recipe }: RecipeFormProps) {
 
   return (
     <div className="space-y-6">
+      {/* AI Recipe Import */}
+      {showAIImport && mode === 'create' && (
+        <AIRecipeImport workspaceId={workspaceId} onRecipeParsed={handleAIRecipeParsed} />
+      )}
+
       {/* Basic info */}
       <Card>
         <CardContent className="pt-6 space-y-4">
